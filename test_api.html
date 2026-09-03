@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 تست API - Text-to-Speech</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        textarea, select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        textarea:focus, select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result.success {
+            display: block;
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+        }
+        
+        .result.error {
+            display: block;
+            background: #fef2f2;
+            border: 2px solid #ef4444;
+        }
+        
+        .result-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .result-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .audio-player {
+            margin: 15px 0;
+            width: 100%;
+        }
+        
+        .audio-player audio {
+            width: 100%;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .badge.success { background: #22c55e; color: white; }
+        .badge.error { background: #ef4444; color: white; }
+        .badge.info { background: #3b82f6; color: white; }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .info-box code {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .history {
+            margin-top: 20px;
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-item .text {
+            flex: 1;
+            margin-right: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .history-item .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .history-item .actions button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .history-item .actions button:hover {
+            background: #5a67d8;
+        }
+        
+        .clear-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        @media (max-width: 600px) {
+            .row {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 تست API تبدیل متن به گفتار</h1>
+        <div class="subtitle">
+            <span class="badge info">API v1.0</span>
+            <span style="margin-right: 10px; color: #666;">آدرس: <code>/tts</code></span>
+        </div>
+        
+        <!-- فرم -->
+        <form id="ttsForm">
+            <div class="form-group">
+                <label for="text">📝 متن</label>
+                <textarea id="text" placeholder="متن خود را برای تبدیل به گفتار وارد کنید..." required>سلام! این یک تست از API تبدیل متن به گفتار است.</textarea>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    <span id="charCount">0</span> / 5000 کاراکتر
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label for="lang">🌍 زبان</label>
+                    <select id="lang">
+                        <option value="fa">فارسی</option>
+                        <option value="en">English</option>
+                        <option value="ar">العربية</option>
+                        <option value="fr">Français</option>
+                        <option value="de">Deutsch</option>
+                        <option value="es">Español</option>
+                        <option value="tr">Türkçe</option>
+                        <option value="ur">اردو</option>
+                        <option value="ru">Русский</option>
+                        <option value="zh-CN">中文</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="mode">⚡ حالت</label>
+                    <select id="mode">
+                        <option value="file">🎵 دریافت فایل (MP3)</option>
+                        <option value="json">📊 دریافت JSON</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="form-group">
+                    <label for="speed">🐢 سرعت</label>
+                    <select id="speed">
+                        <option value="false">Normal</option>
+                        <option value="true">Slow</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>🌐 API URL</label>
+                    <input id="apiUrl" value="http://localhost:8000" placeholder="http://localhost:8000">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn">🎵 تبدیل به گفتار</button>
+        </form>
+        
+        <!-- لودینگ -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px; color: #666;">در حال تبدیل متن به گفتار...</p>
+        </div>
+        
+        <!-- نتیجه -->
+        <div class="result" id="result">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-content" id="resultContent"></div>
+        </div>
+        
+        <!-- تاریخچه -->
+        <div class="history" id="historySection" style="display: none;">
+            <h3>📜 تاریخچه تبدیل‌ها</h3>
+            <div id="historyList"></div>
+            <button class="clear-btn" onclick="clearHistory()">🗑️ پاک کردن تاریخچه</button>
+        </div>
+        
+        <!-- اطلاعات -->
+        <div class="info-box">
+            <strong>📖 راهنما:</strong>
+            <ul style="margin-top: 8px; margin-right: 20px; color: #666;">
+                <li>حداکثر 5000 کاراکتر مجاز است</li>
+                <li>برای دریافت فایل، حالت <code>دریافت فایل</code> را انتخاب کنید</li>
+                <li>برای دریافت JSON، حالت <code>دریافت JSON</code> را انتخاب کنید</li>
+                <li>می‌توانید از <code>curl</code> یا <code>Postman</code> نیز استفاده کنید</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // ========== متغیرها ==========
+        let history = JSON.parse(localStorage.getItem('tts_history') || '[]');
+        let audioBlob = null;
+        
+        // ========== DOM References ==========
+        const form = document.getElementById('ttsForm');
+        const textInput = document.getElementById('text');
+        const charCount = document.getElementById('charCount');
+        const submitBtn = document.getElementById('submitBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultContent = document.getElementById('resultContent');
+        const historySection = document.getElementById('historySection');
+        const historyList = document.getElementById('historyList');
+        const apiUrlInput = document.getElementById('apiUrl');
+        
+        // ========== شمارش کاراکتر ==========
+        textInput.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            if (count > 5000) {
+                charCount.style.color = 'red';
+            } else {
+                charCount.style.color = '#666';
+            }
+        });
+        textInput.dispatchEvent(new Event('input'));
+        
+        // ========== تابع تبدیل ==========
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const text = textInput.value.trim();
+            if (!text) {
+                showResult(false, 'لطفاً متن را وارد کنید!');
+                return;
+            }
+            
+            if (text.length > 5000) {
+                showResult(false, 'متن طولانی است! حداکثر 5000 کاراکتر مجاز است.');
+                return;
+            }
+            
+            const lang = document.getElementById('lang').value;
+            const mode = document.getElementById('mode').value;
+            const slow = document.getElementById('speed').value === 'true';
+            const baseUrl = apiUrlInput.value.trim() || 'http://localhost:8000';
+            
+            // نمایش لودینگ
+            loading.classList.add('active');
+            submitBtn.disabled = true;
+            result.className = 'result';
+            result.style.display = 'none';
+            
+            try {
+                const url = `${baseUrl}/tts${mode === 'json' ? '/json' : ''}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text, lang, slow })
+                });
+                
+                if (mode === 'json') {
+                    // حالت JSON
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showResult(true, '✅ تبدیل با موفقیت انجام شد!');
+                        resultContent.innerHTML = `
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div><strong>شناسه فایل:</strong> ${data.file_id || 'N/A'}</div>
+                                <div><strong>حجم فایل:</strong> ${data.file_size || 0} KB</div>
+                                <div><strong>مدت زمان:</strong> ${data.duration_seconds || 0} ثانیه</div>
+                                <div><strong>وضعیت:</strong> <span class="badge success">موفق</span></div>
+                            </div>
+                            ${data.download_url ? `
+                                <div style="margin-top: 15px;">
+                                    <strong>لینک دانلود:</strong>
+                                    <code>${baseUrl}${data.download_url}</code>
+                                    <br>
+                                    <button onclick="downloadFile('${data.file_id}', '${baseUrl}')" 
+                                            style="margin-top: 10px; background: #22c55e; color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">
+                                        📥 دانلود فایل
+                                    </button>
+                                </div>
+                            ` : ''}
+                        `;
+                        addToHistory(text, lang, 'json', data.file_id);
+                    } else {
+                        showResult(false, `❌ خطا: ${data.message}`);
+                    }
+                } else {
+                    // حالت فایل
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'خطا در تبدیل');
+                    }
+                    
+                    audioBlob = await response.blob();
+                    const url = URL.createObjectURL(audioBlob);
+                    
+                    showResult(true, '✅ تبدیل با موفقیت انجام شد!');
+                    resultContent.innerHTML = `
+                        <div class="audio-player">
+                            <audio controls autoplay>
+                                <source src="${url}" type="audio/mpeg">
+                                مرورگر شما از پخش صدا پشتیبانی نمی‌کند.
+                            </audio>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <button onclick="downloadAudio()" 
+                                    style="background: #22c55e; color: white; border: none; padding: 10px 30px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                                📥 دانلود فایل MP3
+                            </button>
+                            <span style="margin-right: 10px; color: #666;">حجم: ${(audioBlob.size / 1024).toFixed(1)} KB</span>
+                        </div>
+                    `;
+                    
+                    // اطلاعات از هدر
+                    const fileId = response.headers.get('X-File-ID') || 'N/A';
+                    const duration = response.headers.get('X-Duration') || 'N/A';
+                    addToHistory(text, lang, 'file', fileId);
+                }
+                
+            } catch (error) {
+                showResult(false, `❌ خطا: ${error.message}`);
+                console.error('Error:', error);
+            } finally {
+                loading.classList.remove('active');
+                submitBtn.disabled = false;
+            }
+        });
+        
+        // ========== نمایش نتیجه ==========
+        function showResult(success, message) {
+            result.className = `result ${success ? 'success' : 'error'}`;
+            result.style.display = 'block';
+            resultTitle.textContent = message;
+            if (success) {
+                resultTitle.style.color = '#22c55e';
+            } else {
+                resultTitle.style.color = '#ef4444';
+            }
+        }
+        
+        // ========== دانلود فایل ==========
+        function downloadAudio() {
+            if (!audioBlob) {
+                alert('فایلی برای دانلود وجود ندارد!');
+                return;
+            }
+            const url = URL.createObjectURL(audioBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `speech_${Date.now()}.mp3`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        async function downloadFile(fileId, baseUrl) {
+            try {
+                const response = await fetch(`${baseUrl}/download/${fileId}`);
+                if (!response.ok) throw new Error('خطا در دانلود');
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `speech_${fileId}.mp3`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert(`خطا در دانلود: ${error.message}`);
+            }
+        }
+        
+        // ========== تاریخچه ==========
+        function addToHistory(text, lang, mode, fileId) {
+            const item = {
+                id: Date.now(),
+                text: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+                lang,
+                mode,
+                fileId,
+                timestamp: new Date().toLocaleString('fa-IR')
+            };
+            history.unshift(item);
+            if (history.length > 20) history.pop();
+            localStorage.setItem('tts_history', JSON.stringify(history));
+            renderHistory();
+        }
+        
+        function renderHistory() {
+            if (history.length === 0) {
+                historySection.style.display = 'none';
+                return;
+            }
+            historySection.style.display = 'block';
+            historyList.innerHTML = history.map((item, index) => `
+                <div class="history-item">
+                    <span class="badge ${item.mode === 'file' ? 'success' : 'info'}">${item.mode === 'file' ? '🎵' : '📊'}</span>
+                    <span class="text">${item.text}</span>
+                    <span style="color: #666; font-size: 12px;">${item.lang} | ${item.timestamp}</span>
+                    <div class="actions">
+                        ${item.fileId ? `<button onclick="downloadFile('${item.fileId}', '${apiUrlInput.value || 'http://localhost:8000'}')">📥</button>` : ''}
+                        <button onclick="removeHistory(${index})" style="background: #ef4444;">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function removeHistory(index) {
+            history.splice(index, 1);
+            localStorage.setItem('tts_history', JSON.stringify(history));
+            renderHistory();
+        }
+        
+        function clearHistory() {
+            if (confirm('آیا از پاک کردن تاریخچه مطمئن هستید؟')) {
+                history = [];
+                localStorage.setItem('tts_history', JSON.stringify(history));
+                renderHistory();
+            }
+        }
+        
+        // ========== بارگذاری اولیه ==========
+        renderHistory();
+        
+        // ========== تست اتصال ==========
+        async function testConnection() {
+            try {
+                                const baseUrl = apiUrlInput.value.trim() || 'http://localhost:8000';
+                const response = await fetch(`${baseUrl}/health`);
+                if (response.ok) {
+                    console.log('✅ اتصال به API برقرار است');
+                } else {
+                    console.warn('⚠️ اتصال به API برقرار نیست');
+                }
+            } catch (error) {
+                console.warn('⚠️ اتصال به API برقرار نیست:', error.message);
+            }
+        }
+        
+        // تست اتصال هنگام بارگذاری
+        setTimeout(testConnection, 1000);
+        
+        console.log('🧪 صفحه تست API بارگذاری شد!');
+        console.log('📌 برای تست از فرم استفاده کنید.');
+    </script>
+</body>
+</html>
