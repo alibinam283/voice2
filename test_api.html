@@ -317,7 +317,7 @@
                 
                 <div class="form-group">
                     <label>🌐 API URL</label>
-                    <input id="apiUrl" value="http://localhost:8000" placeholder="http://localhost:8000">
+                    <input id="apiUrl" placeholder="http://localhost:8000">
                 </div>
             </div>
             
@@ -372,6 +372,14 @@
         const historySection = document.getElementById('historySection');
         const historyList = document.getElementById('historyList');
         const apiUrlInput = document.getElementById('apiUrl');
+
+        function getDefaultApiUrl() {
+            return window.location.protocol === 'http:' || window.location.protocol === 'https:'
+                ? window.location.origin
+                : 'http://localhost:8000';
+        }
+
+        apiUrlInput.value = getDefaultApiUrl();
         
         // ========== شمارش کاراکتر ==========
         textInput.addEventListener('input', function() {
@@ -403,7 +411,7 @@
             const lang = document.getElementById('lang').value;
             const mode = document.getElementById('mode').value;
             const slow = document.getElementById('speed').value === 'true';
-            const baseUrl = apiUrlInput.value.trim() || 'http://localhost:8000';
+            const baseUrl = apiUrlInput.value.trim() || getDefaultApiUrl();
             
             // نمایش لودینگ
             loading.classList.add('active');
@@ -485,7 +493,10 @@
                 }
                 
             } catch (error) {
-                showResult(false, `❌ خطا: ${error.message}`);
+                const message = error.name === 'TypeError'
+                    ? 'اتصال برقرار نشد. مطمئن شوید API با دستور uvicorn اجراست و آدرس API درست است.'
+                    : error.message;
+                showResult(false, `❌ خطا: ${message}`);
                 console.error('Error:', error);
             } finally {
                 loading.classList.remove('active');
@@ -567,7 +578,7 @@
                     <span class="text">${item.text}</span>
                     <span style="color: #666; font-size: 12px;">${item.lang} | ${item.timestamp}</span>
                     <div class="actions">
-                        ${item.fileId ? `<button onclick="downloadFile('${item.fileId}', '${apiUrlInput.value || 'http://localhost:8000'}')">📥</button>` : ''}
+                        ${item.fileId ? `<button onclick="downloadFile('${item.fileId}', '${apiUrlInput.value || getDefaultApiUrl()}')">📥</button>` : ''}
                         <button onclick="removeHistory(${index})" style="background: #ef4444;">✕</button>
                     </div>
                 </div>
@@ -594,7 +605,7 @@
         // ========== تست اتصال ==========
         async function testConnection() {
             try {
-                                const baseUrl = apiUrlInput.value.trim() || 'http://localhost:8000';
+                const baseUrl = apiUrlInput.value.trim() || getDefaultApiUrl();
                 const response = await fetch(`${baseUrl}/health`);
                 if (response.ok) {
                     console.log('✅ اتصال به API برقرار است');

@@ -1,19 +1,20 @@
 # api.py
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import gtts
 import os
-import tempfile
 import uuid
 import time
-from typing import Optional, List
+from pathlib import Path
+from typing import Optional
 import logging
 
 # ========== تنظیمات لاگ ==========
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+BASE_DIR = Path(__file__).resolve().parent
 
 # ========== ایجاد اپلیکیشن ==========
 app = FastAPI(
@@ -52,7 +53,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -109,6 +110,13 @@ def cleanup_old_files():
     
     for file_id in to_delete:
         del temp_files[file_id]
+
+
+def validate_request(request: TTSRequest):
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="متن نمی‌تواند خالی باشد")
+    if request.lang not in LANGUAGES:
+        raise HTTPException(status_code=400, detail=f"زبان {request.lang} پشتیبانی نمی‌شود")
 
 # ========== اندپوینت‌ها ==========
 @app.get("/", response_class=HTMLResponse)
@@ -181,7 +189,7 @@ curl -X POST http://localhost:8000/tts \\
 @app.get("/test", response_class=HTMLResponse)
 async def test_page():
     """صفحه تست تعاملی API"""
-    with open("test_api.html", "r", encoding="utf-8") as f:
+    with open(BASE_DIR / "test_api.html", "r", encoding="utf-8") as f:
         return f.read()
 
 @app.get("/languages")
@@ -209,15 +217,7 @@ async def text_to_speech(request: TTSRequest):
     """
     تبدیل متن به گفتار و بازگشت مستقیم فایل MP3
     """
-    # اعتبارسنجی
-    if not request.text.strip():
-        raise HTTPException(status_code=400, detail="متن نمی‌تواند خالی باشد")
-    
-    if len(request.text) > 5000:
-        raise HTTPException(status_code=400, detail="متن طولانی است (حداکثر 5000 کاراکتر)")
-    
-    if request.lang not in LANGUAGES:
-        raise HTTPException(status_code=400, detail=f"زبان {request.lang} پشتیبانی نمی‌شود")
+    validate_request(request)
     
     # پاکسازی فایل‌های قدیمی
     cleanup_old_files()
@@ -267,12 +267,7 @@ async def text_to_speech_json(request: TTSRequest):
     """
     تبدیل متن به گفتار و بازگشت پاسخ JSON با لینک دانلود
     """
-    # اعتبارسنجی
-    if not request.text.strip():
-        raise HTTPException(status_code=400, detail="متن نمی‌تواند خالی باشد")
-    
-    if len(request.text) > 5000:
-        raise HTTPException(status_code=400, detail="متن طولانی است (حداکثر 5000 کاراکتر)")
+    validate_request(request)
     
     try:
         # ایجاد فایل موقت

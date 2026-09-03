@@ -278,7 +278,7 @@ elif page == "🧪 تست API":
                             st.error(f"❌ خطا: {response.status_code}")
                             try:
                                 st.json(response.json())
-                            except:
+                            except ValueError:
                                 st.text(response.text)
                             
                 except requests.exceptions.ConnectionError:
